@@ -1,0 +1,18 @@
+{
+  "queries_count": 2,
+  "uploads_count": 1,
+  "feedback": {
+    "up": 0,
+    "down": 0
+  },
+  "queries_timeline": [
+    {
+      "ts": "2025-11-12T20:05:07.241109",
+      "inc": 1
+    },
+    {
+      "ts": "2025-11-12T20:20:22.776884",
+      "inc": 1
+    }
+  ]
+}

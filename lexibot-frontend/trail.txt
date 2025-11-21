@@ -1,0 +1,333 @@
+import React, { useState } from "react";
+import axios from "axios";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+} from "recharts";
+
+// Axios default
+axios.defaults.baseURL = "http://127.0.0.1:8000";
+
+// Simple UI Components
+const Button = ({ children, onClick, className = "", disabled = false }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={px-4 py-2 rounded-lg font-semibold transition ${className} disabled:bg-gray-400 disabled:cursor-not-allowed}
+  >
+    {children}
+  </button>
+);
+
+const Card = ({ children, className = "" }) => (
+  <div className={border border-gray-200 rounded-lg p-4 shadow-sm bg-white ${className}}>
+    {children}
+  </div>
+);
+
+const CardContent = ({ children }) => <div className="p-2">{children}</div>;
+
+// Icons
+const SendIcon = () => <span>📤</span>;
+const UploadIcon = () => <span>📎</span>;
+const FileTextIcon = () => <span>📄</span>;
+const BarChartIcon = () => <span>📊</span>;
+const MessageSquareIcon = () => <span>💬</span>;
+const HomeIcon = () => <span>🏠</span>;
+const InfoIcon = () => <span>ℹ</span>;
+
+// Main App
+export default function LexiBotApp() {
+  const [activeTab, setActiveTab] = useState("home");
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [summary, setSummary] = useState("");
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Login / Signup states
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [signupData, setSignupData] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+
+  // Send message
+  const handleSend = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = { sender: "user", text: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await axios.post("/api/ask-query", { query: input });
+      const aiMsg = { sender: "ai", text: res.data.answer };
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch {
+      const errorMsg = { sender: "ai", text: "Error. Please try again." };
+      setMessages((prev) => [...prev, errorMsg]);
+    }
+
+    setLoading(false);
+  };
+
+  // File upload
+  const handleFileUpload = async (e) => {
+    const uploadedFile = e.target.files[0];
+    if (!uploadedFile) return;
+    setFile(uploadedFile);
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+      const res = await axios.post("/api/summarize", formData);
+      setSummary(res.data.summary);
+    } catch {
+      setSummary("Error summarizing file. Try another file.");
+    }
+
+    setLoading(false);
+  };
+
+  // Sample Charts Data
+  const performanceData = [
+    { metric: "Accuracy", value: 92 },
+    { metric: "Response Time", value: 85 },
+    { metric: "User Satisfaction", value: 95 },
+    { metric: "Case Relevance", value: 88 },
+  ];
+
+  const caseLawData = [
+    { case: "Smith v. Jones", citations: 15 },
+    { case: "Doe v. State", citations: 9 },
+    { case: "Brown Corp", citations: 12 },
+    { case: "Wilson Appeal", citations: 6 },
+    { case: "Taylor Ltd", citations: 8 },
+    { case: "Miller Case", citations: 11 },
+  ];
+
+  // Modal Rendering
+  const renderModal = (type) => {
+    const isLogin = type === "login";
+
+    const handleSubmit = () => {
+      if (isLogin) {
+        if (!loginData.email || !loginData.password) {
+          alert("Please enter email and password!");
+          return;
+        }
+        setShowLogin(false);
+        setLoginData({ email: "", password: "" });
+      } else {
+        if (!signupData.name || !signupData.email || !signupData.password || !signupData.confirmPassword) {
+          alert("Please fill all fields!");
+          return;
+        }
+        if (signupData.password !== signupData.confirmPassword) {
+          alert("Passwords do not match!");
+          return;
+        }
+        setShowSignup(false);
+        setSignupData({ name: "", email: "", password: "", confirmPassword: "" });
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50">
+        {/* Only background blur */}
+        <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm"></div>
+
+        <div className="relative bg-white rounded-lg p-8 w-96 z-50 shadow-lg">
+          <button
+            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl font-bold"
+            onClick={() => (isLogin ? setShowLogin(false) : setShowSignup(false))}
+          >
+            ✕
+          </button>
+
+          <h2 className="text-2xl font-bold mb-4">{isLogin ? "Login" : "Signup"}</h2>
+          <div className="flex flex-col gap-4">
+            {!isLogin && (
+              <input
+                type="text"
+                placeholder="Name"
+                value={signupData.name}
+                onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
+                className="border p-2 rounded"
+              />
+            )}
+            <input
+              type="email"
+              placeholder="Email"
+              value={isLogin ? loginData.email : signupData.email}
+              onChange={(e) =>
+                isLogin
+                  ? setLoginData({ ...loginData, email: e.target.value })
+                  : setSignupData({ ...signupData, email: e.target.value })
+              }
+              className="border p-2 rounded"
+            />
+            <input
+              type="password"
+              placeholder={isLogin ? "Password" : "Create Password"}
+              value={isLogin ? loginData.password : signupData.password}
+              onChange={(e) =>
+                isLogin
+                  ? setLoginData({ ...loginData, password: e.target.value })
+                  : setSignupData({ ...signupData, password: e.target.value })
+              }
+              className="border p-2 rounded"
+            />
+            {!isLogin && (
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                value={signupData.confirmPassword || ""}
+                onChange={(e) =>
+                  setSignupData({ ...signupData, confirmPassword: e.target.value })
+                }
+                className="border p-2 rounded"
+              />
+            )}
+            {isLogin && (
+              <button
+                onClick={() => alert("Forgot password functionality not implemented yet.")}
+                className="text-sm text-blue-600 hover:underline self-start"
+              >
+                Forgot Password?
+              </button>
+            )}
+            <Button
+              onClick={handleSubmit}
+              className={isLogin ? "bg-green-600 text-white hover:bg-green-700" : "bg-red-600 text-white hover:bg-red-700"}
+            >
+              {isLogin ? "Login" : "Signup"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render Functions
+  const renderHome = () => (
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-blue-800 mb-4">⚖ Welcome to LexiBot</h1>
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          Your intelligent AI legal assistant for instant legal insights, document analysis, and case law research.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+          <div className="text-3xl mb-4">💬</div>
+          <h3 className="text-xl font-semibold mb-3">Ask Legal Questions</h3>
+          <p className="text-gray-600">Get instant AI-powered responses to your legal queries with relevant case references.</p>
+        </Card>
+        <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+          <div className="text-3xl mb-4">📄</div>
+          <h3 className="text-xl font-semibold mb-3">Document Analysis</h3>
+          <p className="text-gray-600">Upload legal documents and receive comprehensive summaries and key insights.</p>
+        </Card>
+        <Card className="text-center p-6 hover:shadow-lg transition-shadow">
+          <div className="text-3xl mb-4">📊</div>
+          <h3 className="text-xl font-semibold mb-3">Legal Analytics</h3>
+          <p className="text-gray-600">Track performance metrics and explore case law trends with interactive dashboards.</p>
+        </Card>
+      </div>
+
+      <Card className="p-8 bg-blue-50 border-blue-200">
+        <h2 className="text-2xl font-bold text-blue-800 mb-4 text-center">Get Started Today</h2>
+        <div className="flex flex-wrap gap-4 justify-center">
+          <Button className="bg-blue-600 text-white hover:bg-blue-700">Start Chatting</Button>
+          <Button className="bg-blue-600 text-white hover:bg-blue-700">Upload Document</Button>
+          <Button className="bg-blue-600 text-white hover:bg-blue-700">View Analytics</Button>
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderDocs = () => <div className="p-6 max-w-6xl mx-auto">Document Section</div>;
+  const renderAnalytics = () => <div className="p-6 max-w-6xl mx-auto">Analytics Section</div>;
+  const renderAbout = () => <div className="p-6 max-w-6xl mx-auto">About Section</div>;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">⚖</span>
+              <h1 className="text-xl font-bold text-gray-900">LexiBot</h1>
+            </div>
+            <nav className="flex items-center space-x-2">
+              {[
+                { id: "home", icon: HomeIcon, label: "Home" },
+                { id: "chat", icon: MessageSquareIcon, label: "Chat" },
+                { id: "docs", icon: FileTextIcon, label: "Documents" },
+                { id: "analytics", icon: BarChartIcon, label: "Analytics" },
+                { id: "about", icon: InfoIcon, label: "About" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
+                    activeTab === item.id
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <item.icon />
+                  <span className="ml-2 hidden sm:inline">{item.label}</span>
+                </button>
+              ))}
+
+              {/* Login / Signup buttons */}
+              <Button onClick={() => setShowLogin(true)} className="bg-green-600 text-white hover:bg-green-700">
+                Login
+              </Button>
+              <Button onClick={() => setShowSignup(true)} className="bg-red-600 text-white hover:bg-red-700">
+                Signup
+              </Button>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className={${showLogin || showSignup ? "filter blur-sm" : ""} flex-1 py-8}>
+        {activeTab === "home" && renderHome()}
+        {activeTab === "chat" && (
+          <div className="p-6 max-w-6xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4">Chat Section</h2>
+            {/* Add chat UI here later */}
+          </div>
+        )}
+        {activeTab === "docs" && renderDocs()}
+        {activeTab === "analytics" && renderAnalytics()}
+        {activeTab === "about" && renderAbout()}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t py-6">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-gray-600 text-sm">© 2025 LexiBot – AI Legal Assistant | Built with React & Modern Web Technologies</p>
+        </div>
+      </footer>
+
+      {/* Modals */}
+      {showLogin && renderModal("login")}
+      {showSignup && renderModal("signup")}
+    </div>
+  );
+}
